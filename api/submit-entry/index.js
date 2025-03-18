@@ -188,6 +188,12 @@ function addEntryToCsv(csvContent, entry) {
     escapeCSV(entry.description4 || ''),
     escapeCSV(entry.description5 || ''),
     escapeCSV(entry.description6 || ''),
+    escapeCSV(entry.link || ''),
+    escapeCSV(entry.link2 || ''),
+    escapeCSV(entry.link3 || ''),
+    escapeCSV(entry.link4 || ''),
+    escapeCSV(entry.link5 || ''),
+    escapeCSV(entry.link6 || ''),
     escapeCSV(entry.imagePath || '')
   ].join(',');
   

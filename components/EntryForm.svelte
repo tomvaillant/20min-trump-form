@@ -13,6 +13,12 @@
   let description4 = '';
   let description5 = '';
   let description6 = '';
+  let link = '';
+  let link2 = '';
+  let link3 = '';
+  let link4 = '';
+  let link5 = '';
+  let link6 = '';
   let imageFile = null;
   let imagePreview = null;
   let submitting = false;
@@ -62,6 +68,12 @@
         description4,
         description5,
         description6,
+        link,
+        link2,
+        link3,
+        link4,
+        link5,
+        link6,
         imagePath
       };
       
@@ -77,6 +89,12 @@
         description4 = '';
         description5 = '';
         description6 = '';
+        link = '';
+        link2 = '';
+        link3 = '';
+        link4 = '';
+        link5 = '';
+        link6 = '';
         imageFile = null;
         imagePreview = null;
         
@@ -120,16 +138,38 @@
       disabled={submitting}
     ></textarea>
   </div>
+
+  <div class="form-group">
+    <label for="link">Link (optional)</label>
+    <input 
+      type="url" 
+      id="link" 
+      bind:value={link} 
+      placeholder="URL for reference (e.g., https://example.com)"
+      disabled={submitting}
+    >
+  </div>
   
   <div class="form-group">
     <label for="description2">Event 2 (optional)</label>
     <textarea 
-      id="description2" 
-      bind:value={description2} 
-      rows="3" 
-      placeholder="Additional event description"
-      disabled={submitting}
+    id="description2" 
+    bind:value={description2} 
+    rows="3" 
+    placeholder="Additional event description"
+    disabled={submitting}
     ></textarea>
+  </div>
+
+  <div class="form-group">
+    <label for="link2">Link 2 (optional)</label>
+    <input 
+      type="url" 
+      id="link2" 
+      bind:value={link2} 
+      placeholder="URL for reference (e.g., https://example.com)"
+      disabled={submitting}
+    >
   </div>
   
   <div class="form-group">
@@ -142,6 +182,17 @@
       disabled={submitting}
     ></textarea>
   </div>
+
+  <div class="form-group">
+    <label for="link3">Link 3 (optional)</label>
+    <input 
+      type="url" 
+      id="link3" 
+      bind:value={link3} 
+      placeholder="URL for reference (e.g., https://example.com)"
+      disabled={submitting}
+    >
+  </div>
   
   <div class="form-group">
     <label for="description4">Event 4 (optional)</label>
@@ -152,6 +203,17 @@
       placeholder="Additional event description"
       disabled={submitting}
     ></textarea>
+  </div>
+
+  <div class="form-group">
+    <label for="link4">Link 4 (optional)</label>
+    <input 
+      type="url" 
+      id="link4" 
+      bind:value={link4} 
+      placeholder="URL for reference (e.g., https://example.com)"
+      disabled={submitting}
+    >
   </div>
   
   <div class="form-group">
@@ -164,6 +226,17 @@
       disabled={submitting}
     ></textarea>
   </div>
+
+  <div class="form-group">
+    <label for="link5">Link 5 (optional)</label>
+    <input 
+      type="url" 
+      id="link5" 
+      bind:value={link5} 
+      placeholder="URL for reference (e.g., https://example.com)"
+      disabled={submitting}
+    >
+  </div>
   
   <div class="form-group">
     <label for="description6">Event 6 (optional)</label>
@@ -174,6 +247,17 @@
       placeholder="Additional event description"
       disabled={submitting}
     ></textarea>
+  </div>
+  
+  <div class="form-group">
+    <label for="link6">Link 6 (optional)</label>
+    <input 
+      type="url" 
+      id="link6" 
+      bind:value={link6} 
+      placeholder="URL for reference (e.g., https://example.com)"
+      disabled={submitting}
+    >
   </div>
   
   <div class="form-group">
@@ -230,7 +314,8 @@
     color: #0088ff;
   }
 
-  input[type="text"], 
+  input[type="text"],
+  input[type="url"],
   textarea, 
   select {
     width: 100%;
