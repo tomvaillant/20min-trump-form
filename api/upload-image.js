@@ -1,6 +1,6 @@
 // Vercel Serverless Function for image uploads
-const { Octokit } = require('@octokit/rest');
-const axios = require('axios');
+import { Octokit } from '@octokit/rest';
+import axios from 'axios';
 
 // GitHub configuration - these will come from environment variables
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
@@ -18,7 +18,7 @@ function getOctokit() {
 }
 
 // Main handler function
-module.exports = async (req, res) => {
+export default async (req, res) => {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
