@@ -7,7 +7,7 @@
     },
     {
       "src": "package.json",
-      "use": "@sveltejs/adapter-vercel"
+      "use": "@vercel/static-build"
     }
   ],
   "routes": [
