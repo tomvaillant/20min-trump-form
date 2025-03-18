@@ -50,7 +50,7 @@ export async function processSubmission(entry, imageFile, imageFilename) {
     const imageData = await fileToBase64(imageFile);
     
     // Send form data to the serverless function
-    const response = await fetch(`${getApiUrl()}/submit-entry`, {
+    const response = await fetch(`${getApiUrl()}/submit-entry/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
