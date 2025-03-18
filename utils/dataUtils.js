@@ -31,8 +31,10 @@ export async function fetchTimelineData() {
           description: values[2],
           description2: values[3] ? values[3].trim() : '',
           description3: values[4] ? values[4].trim() : '',
-          image: values[5] ? values[5].trim() : '',
-          position: values[6] ? values[6].trim() : ''
+          description4: values[5] ? values[5].trim() : '',
+          description5: values[6] ? values[6].trim() : '',
+          description6: values[7] ? values[7].trim() : '',
+          image: values[8] ? values[8].trim() : ''
         };
       });
     

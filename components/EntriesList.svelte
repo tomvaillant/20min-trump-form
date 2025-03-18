@@ -3,18 +3,26 @@
   
   // Sort entries by date (most recent first)
   $: sortedEntries = [...entries].sort((a, b) => {
-    // Simple comparison based on year then month
-    if (a.year !== b.year) {
-      return parseInt(b.year) - parseInt(a.year);
-    }
-    // If same year, compare months
-    const months = ['January', 'February', 'March', 'April', 'May', 'June', 
-                   'July', 'August', 'September', 'October', 'November', 'December'];
+    // Simple comparison based on month names
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     
     const aMonth = a.date.split(' ')[0];
     const bMonth = b.date.split(' ')[0];
     
-    return months.indexOf(bMonth) - months.indexOf(aMonth);
+    // Get month indices
+    const aMonthIndex = months.indexOf(aMonth);
+    const bMonthIndex = months.indexOf(bMonth);
+    
+    if (aMonthIndex !== bMonthIndex) {
+      return bMonthIndex - aMonthIndex;
+    }
+    
+    // If months are the same, compare by day
+    const aDay = parseInt(a.date.split(' ')[1]) || 0;
+    const bDay = parseInt(b.date.split(' ')[1]) || 0;
+    
+    return bDay - aDay;
   });
 </script>
 
@@ -26,12 +34,11 @@
       <div class="entry-card">
         <div class="entry-header">
           <span class="entry-date">{entry.date}</span>
-          <span class="entry-year">{entry.year}</span>
         </div>
         
         <div class="entry-image">
           {#if entry.image}
-            <img src={entry.image} alt={`${entry.date} ${entry.year}`} />
+            <img src={entry.image} alt={entry.date} />
           {:else}
             <div class="placeholder-image">No image</div>
           {/if}
@@ -45,9 +52,16 @@
           {#if entry.description3 && entry.description3.trim() !== ''}
             <p>{entry.description3}</p>
           {/if}
+          {#if entry.description4 && entry.description4.trim() !== ''}
+            <p>{entry.description4}</p>
+          {/if}
+          {#if entry.description5 && entry.description5.trim() !== ''}
+            <p>{entry.description5}</p>
+          {/if}
+          {#if entry.description6 && entry.description6.trim() !== ''}
+            <p>{entry.description6}</p>
+          {/if}
         </div>
-        
-        <span class="entry-position">Position: {entry.position}</span>
       </div>
     {/each}
   </div>
@@ -94,11 +108,6 @@
     color: #666;
   }
 
-  .entry-year {
-    font-weight: bold;
-    color: #b24846;
-  }
-
   .entry-image {
     width: 100%;
     height: 200px;
@@ -143,15 +152,6 @@
     line-height: 1.4;
   }
 
-  .entry-position {
-    display: inline-block;
-    padding: 4px 8px;
-    margin-top: 10px;
-    background-color: #f0f0f0;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    color: #666;
-  }
 
   @media (max-width: 768px) {
     .entries-grid {

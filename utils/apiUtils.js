@@ -19,13 +19,13 @@ export function handleImageUpload(imageFile, date, title) {
     const cleanDate = date.replace(/[^\w]/g, '-').toLowerCase();
     const cleanTitle = title.replace(/[^\w]/g, '-').toLowerCase();
     
-    // Generate a filename based on convention: event-date_title_suffix.ext
+    // Generate a filename based on convention: date_title_suffix.ext
     const ext = imageFile.name.split('.').pop();
     
     // Add a short random suffix to prevent filename collisions
     const randomSuffix = Math.floor(Math.random() * 1000);
     
-    // Create the filename in the format: event-date_title_suffix.ext
+    // Create the filename in the format: date_title_suffix.ext
     const filename = `${cleanDate}_${cleanTitle}_${randomSuffix}.${ext}`;
     
     // Return the filename and full GitHub raw URL path

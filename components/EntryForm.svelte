@@ -7,11 +7,12 @@
 
   // Form fields
   let date = '';
-  let year = '';
   let description = '';
   let description2 = '';
   let description3 = '';
-  let position = 'right';
+  let description4 = '';
+  let description5 = '';
+  let description6 = '';
   let imageFile = null;
   let imagePreview = null;
   let submitting = false;
@@ -33,7 +34,7 @@
 
   // Form submission
   async function handleSubmit() {
-    if (!date || !year || !description || !imageFile) {
+    if (!date || !description || !imageFile) {
       error = 'Please fill out all required fields';
       return;
     }
@@ -44,7 +45,7 @@
       success = '';
 
       // Process the image with consistent naming convention
-      const eventDate = `${date}-${year}`;
+      const eventDate = date;
       const eventTitle = description.substring(0, 20); // Use first 20 chars of description as title
       const imageResult = handleImageUpload(imageFile, eventDate, eventTitle);
       
@@ -54,11 +55,13 @@
       // Create an entry object for submission
       const entry = {
         date,
-        year,
+        year: '',
         description,
         description2,
         description3,
-        position,
+        description4,
+        description5,
+        description6,
         imagePath
       };
       
@@ -68,11 +71,12 @@
       if (result.success) {
         // Reset the form after successful submission
         date = '';
-        year = '';
         description = '';
         description2 = '';
         description3 = '';
-        position = 'right';
+        description4 = '';
+        description5 = '';
+        description6 = '';
         imageFile = null;
         imagePreview = null;
         
@@ -94,59 +98,80 @@
 
 <form on:submit|preventDefault={handleSubmit} class="entry-form">
   <div class="form-group">
-    <label for="date">Month <span class="required">*</span></label>
+    <label for="date">Date <span class="required">*</span></label>
     <input 
       type="text" 
       id="date" 
       bind:value={date} 
-      placeholder="e.g. July 1" 
+      placeholder="e.g. Jul 5" 
       required
       disabled={submitting}
     >
   </div>
   
   <div class="form-group">
-    <label for="year">Year <span class="required">*</span></label>
-    <input 
-      type="text" 
-      id="year" 
-      bind:value={year} 
-      placeholder="Entry year" 
-      required
-      disabled={submitting}
-    >
-  </div>
-  
-  <div class="form-group">
-    <label for="description">Description <span class="required">*</span></label>
+    <label for="description">Event <span class="required">*</span></label>
     <textarea 
       id="description" 
       bind:value={description} 
       rows="3" 
-      placeholder="Main description" 
+      placeholder="Main event description" 
       required
       disabled={submitting}
     ></textarea>
   </div>
   
   <div class="form-group">
-    <label for="description2">Description 2 (optional)</label>
+    <label for="description2">Event 2 (optional)</label>
     <textarea 
       id="description2" 
       bind:value={description2} 
       rows="3" 
-      placeholder="Additional description"
+      placeholder="Additional event description"
       disabled={submitting}
     ></textarea>
   </div>
   
   <div class="form-group">
-    <label for="description3">Description 3 (optional)</label>
+    <label for="description3">Event 3 (optional)</label>
     <textarea 
       id="description3" 
       bind:value={description3} 
       rows="3" 
-      placeholder="Additional description"
+      placeholder="Additional event description"
+      disabled={submitting}
+    ></textarea>
+  </div>
+  
+  <div class="form-group">
+    <label for="description4">Event 4 (optional)</label>
+    <textarea 
+      id="description4" 
+      bind:value={description4} 
+      rows="3" 
+      placeholder="Additional event description"
+      disabled={submitting}
+    ></textarea>
+  </div>
+  
+  <div class="form-group">
+    <label for="description5">Event 5 (optional)</label>
+    <textarea 
+      id="description5" 
+      bind:value={description5} 
+      rows="3" 
+      placeholder="Additional event description"
+      disabled={submitting}
+    ></textarea>
+  </div>
+  
+  <div class="form-group">
+    <label for="description6">Event 6 (optional)</label>
+    <textarea 
+      id="description6" 
+      bind:value={description6} 
+      rows="3" 
+      placeholder="Additional event description"
       disabled={submitting}
     ></textarea>
   </div>
@@ -168,13 +193,6 @@
     {/if}
   </div>
   
-  <div class="form-group">
-    <label for="position">Position <span class="required">*</span></label>
-    <select id="position" bind:value={position} disabled={submitting}>
-      <option value="left">Left</option>
-      <option value="right">Right</option>
-    </select>
-  </div>
   
   {#if error}
     <div class="message error-message">{error}</div>
@@ -209,7 +227,7 @@
   }
 
   .required {
-    color: #b24846;
+    color: #0088ff;
   }
 
   input[type="text"], 
@@ -264,7 +282,7 @@
   }
 
   .submit-btn {
-    background-color: #b24846;
+    background-color: #0088ff;
     color: white;
     border: none;
     padding: 12px 20px;
@@ -277,7 +295,7 @@
   }
 
   .submit-btn:hover:not([disabled]) {
-    background-color: #943b39;
+    background-color: #0066cc;
   }
 
   .submit-btn[disabled] {

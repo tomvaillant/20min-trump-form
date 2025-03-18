@@ -68,7 +68,7 @@ export default async function handler(req, res) {
       octokit,
       CSV_PATH,
       updatedCsv,
-      `Add timeline entry: ${entry.date}, ${entry.year}`,
+      `Add timeline entry: ${entry.date}`,
       sha
     );
     
@@ -185,8 +185,10 @@ function addEntryToCsv(csvContent, entry) {
     escapeCSV(entry.description),
     escapeCSV(entry.description2 || ''),
     escapeCSV(entry.description3 || ''),
-    escapeCSV(entry.imagePath || ''),
-    escapeCSV(entry.position || 'right')
+    escapeCSV(entry.description4 || ''),
+    escapeCSV(entry.description5 || ''),
+    escapeCSV(entry.description6 || ''),
+    escapeCSV(entry.imagePath || '')
   ].join(',');
   
   // Add the new row and join back together
