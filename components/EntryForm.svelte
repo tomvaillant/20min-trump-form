@@ -1,6 +1,7 @@
 <script>
   import { createEventDispatcher } from 'svelte';
-  import { handleImageUpload, appendToCSV } from '../utils/apiUtils.js';
+  import { handleImageUpload, processSubmission } from '../utils/apiUtils.js';
+  import { getImageUrl } from '../utils/config.js';
 
   const dispatch = createEventDispatcher();
 
@@ -15,6 +16,7 @@
   let imagePreview = null;
   let submitting = false;
   let error = '';
+  let success = '';
 
   // Handle image selection
   function handleImageChange(event) {
@@ -39,26 +41,17 @@
     try {
       submitting = true;
       error = '';
+      success = '';
 
       // Process the image with consistent naming convention
       const eventDate = `${date}-${year}`;
       const eventTitle = description.substring(0, 20); // Use first 20 chars of description as title
       const imageResult = handleImageUpload(imageFile, eventDate, eventTitle);
       
-      // Save image to the images directory
-      // In a client-side only app, we can only simulate this
-      // For real app use, we'd need either:
-      // 1. A small server component to handle file uploads
-      // 2. Use the File System Access API (only works in some browsers)
-      const imagePath = `/images/${imageResult.filename}`;
+      // Full GitHub raw URL path for the image
+      const imagePath = imageResult.fullPath;
       
-      // Save a copy of the image as a blob URL for demonstration
-      const imageURL = URL.createObjectURL(imageFile);
-      
-      // Log what would happen in a real implementation
-      console.log(`In a real implementation, '${imageFile.name}' would be saved as '${imageResult.filename}' to the images directory`);
-      
-      // Create an entry object for CSV
+      // Create an entry object for submission
       const entry = {
         date,
         year,
@@ -69,35 +62,27 @@
         imagePath
       };
       
-      // Append to CSV (simulated in client-side only app)
-      await appendToCSV(entry);
+      // Process the submission through Vercel serverless function
+      const result = await processSubmission(entry, imageFile, imageResult.filename);
       
-      // For demo purposes - saves the image to the user's downloads or prompts to save
-      // In a real implementation with a server, this would be handled server-side
-      const downloadImage = async () => {
-        const a = document.createElement('a');
-        a.href = imageURL;
-        a.download = imageResult.filename;
-        a.click();
-      };
-      
-      // Ask user if they want to save the image locally (for demonstration)
-      if (confirm("This is a client-side only demo. Would you like to save the image file to your computer? In a real implementation, this would be saved server-side.")) {
-        await downloadImage();
+      if (result.success) {
+        // Reset the form after successful submission
+        date = '';
+        year = '';
+        description = '';
+        description2 = '';
+        description3 = '';
+        position = 'right';
+        imageFile = null;
+        imagePreview = null;
+        
+        success = 'Entry successfully added to the timeline!';
+        
+        // Notify parent component of success
+        dispatch('success');
+      } else {
+        throw new Error(result.message);
       }
-      
-      // Reset the form
-      date = '';
-      year = '';
-      description = '';
-      description2 = '';
-      description3 = '';
-      position = 'right';
-      imageFile = null;
-      imagePreview = null;
-      
-      // Notify parent component of success
-      dispatch('success');
     } catch (err) {
       console.error('Submission error:', err);
       error = err.message || 'Error submitting form';
@@ -192,7 +177,11 @@
   </div>
   
   {#if error}
-    <div class="error-message">{error}</div>
+    <div class="message error-message">{error}</div>
+  {/if}
+  
+  {#if success}
+    <div class="message success-message">{success}</div>
   {/if}
   
   <button type="submit" class="submit-btn" disabled={submitting}>
@@ -255,6 +244,25 @@
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   }
 
+  .message {
+    padding: 10px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  .error-message {
+    background-color: #fce8e6;
+    color: #c5221f;
+    border: 1px solid #f4c7c3;
+  }
+  
+  .success-message {
+    background-color: #e6f4ea;
+    color: #0d652d;
+    border: 1px solid #b7dfca;
+  }
+
   .submit-btn {
     background-color: #b24846;
     color: white;
@@ -275,15 +283,5 @@
   .submit-btn[disabled] {
     background-color: #cccccc;
     cursor: not-allowed;
-  }
-
-  .error-message {
-    background-color: #fce8e6;
-    color: #c5221f;
-    border: 1px solid #f4c7c3;
-    padding: 10px;
-    border-radius: 4px;
-    margin-bottom: 20px;
-    text-align: center;
   }
 </style>

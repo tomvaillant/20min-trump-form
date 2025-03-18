@@ -1,15 +1,25 @@
 /**
- * Simplified utilities for local form submission and file handling
+ * API utilities for form submission and file handling
+ * Using Vercel serverless functions instead of direct GitHub API access
  */
 
-// Function to save image locally and return file info
+import { getImageUrl } from './config.js';
+
+// Get the base API URL - use relative paths in development, full URLs in production
+const getApiUrl = () => {
+  return location.hostname === 'localhost' ? '/api' : `${location.origin}/api`;
+};
+
+/**
+ * Process image upload and generate consistent filename
+ */
 export function handleImageUpload(imageFile, date, title) {
   try {
     // Clean up the date and title for filename
     const cleanDate = date.replace(/[^\w]/g, '-').toLowerCase();
     const cleanTitle = title.replace(/[^\w]/g, '-').toLowerCase();
     
-    // Generate a filename based on convention: event-date_image.jpg
+    // Generate a filename based on convention: event-date_title_suffix.ext
     const ext = imageFile.name.split('.').pop();
     
     // Add a short random suffix to prevent filename collisions
@@ -18,11 +28,12 @@ export function handleImageUpload(imageFile, date, title) {
     // Create the filename in the format: event-date_title_suffix.ext
     const filename = `${cleanDate}_${cleanTitle}_${randomSuffix}.${ext}`;
     
-    // Return the filename to be used in the CSV
+    // Return the filename and full GitHub raw URL path
     return {
       success: true,
       filename: filename,
-      originalName: imageFile.name
+      originalName: imageFile.name,
+      fullPath: getImageUrl(filename)
     };
   } catch (error) {
     console.error('Image handling error:', error);
@@ -30,50 +41,54 @@ export function handleImageUpload(imageFile, date, title) {
   }
 }
 
-// Function to append new entry to CSV file
-export async function appendToCSV(entry) {
+/**
+ * Process form submission via Vercel serverless function
+ */
+export async function processSubmission(entry, imageFile, imageFilename) {
   try {
-    // Read the existing CSV file
-    const response = await fetch('./timeline-data.csv');
+    // Convert the image file to base64
+    const imageData = await fileToBase64(imageFile);
+    
+    // Send form data to the serverless function
+    const response = await fetch(`${getApiUrl()}/submit-entry`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        entry,
+        imageData,
+        filename: imageFilename
+      })
+    });
+    
+    const result = await response.json();
+    
     if (!response.ok) {
-      throw new Error('Failed to load timeline data');
+      throw new Error(result.error || 'Failed to submit entry');
     }
-    
-    const existingData = await response.text();
-    
-    // Format the new entry as a CSV row
-    const newRow = [
-      escapeCSV(entry.date),
-      escapeCSV(entry.title),
-      escapeCSV(entry.description),
-      escapeCSV(entry.description2 || ''),
-      escapeCSV(entry.description3 || ''),
-      escapeCSV(entry.imagePath || ''),
-      escapeCSV(entry.position || 'right')
-    ].join(',');
-    
-    // Simulate saving the updated CSV (would normally be server-side)
-    console.log('New entry would be appended to CSV:', newRow);
     
     return {
       success: true,
-      message: 'Entry has been processed successfully'
+      message: result.message || 'Entry submitted successfully'
     };
   } catch (error) {
-    console.error('CSV operation error:', error);
-    throw new Error('Failed to save entry. Please try again.');
+    console.error('Submission processing error:', error);
+    return {
+      success: false,
+      message: `Failed to process submission: ${error.message}`
+    };
   }
 }
 
-// Escape CSV field to handle commas and quotes
-function escapeCSV(field) {
-  if (!field) return '';
-  
-  // If field contains comma, newline or double quote, enclose it in double quotes
-  if (field.includes(',') || field.includes('\n') || field.includes('"')) {
-    // Replace double quotes with two double quotes
-    return '"' + field.replace(/"/g, '""') + '"';
-  }
-  
-  return field;
+/**
+ * Convert file to base64
+ */
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = error => reject(error);
+  });
 }

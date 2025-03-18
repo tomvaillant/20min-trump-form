@@ -2,10 +2,16 @@
  * Utilities for working with timeline data
  */
 
-// Fetch timeline data from CSV
+import { getDataUrl } from './config.js';
+
+// Fetch timeline data from CSV using GitHub raw URLs
 export async function fetchTimelineData() {
   try {
-    const response = await fetch('./timeline-data.csv');
+    // In development, use local file
+    // In production on GitHub Pages, use the raw GitHub URL
+    const dataUrl = location.hostname === 'localhost' ? './timeline-data.csv' : getDataUrl();
+    
+    const response = await fetch(dataUrl);
     if (!response.ok) {
       throw new Error('Failed to load timeline data');
     }
@@ -21,7 +27,7 @@ export async function fetchTimelineData() {
         const values = row.split(',');
         return {
           date: values[0],
-          title: values[1],
+          year: values[1],
           description: values[2],
           description2: values[3] ? values[3].trim() : '',
           description3: values[4] ? values[4].trim() : '',

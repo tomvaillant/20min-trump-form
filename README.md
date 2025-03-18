@@ -1,73 +1,106 @@
 # Trump Timeline Entry Form
 
-This Svelte application allows content editors to add new entries to the Trump Timeline.
+This Svelte application allows content editors to add new entries to the Trump Timeline, using Vercel serverless functions to update the GitHub repository without requiring user authentication.
 
 ## Getting Started
 
-1. Install dependencies:
+1. Clone this repository
+2. Install dependencies:
    ```
    npm install
    ```
-
-2. Start the development server:
+3. Start the development server:
    ```
    npm run start
    ```
-
-3. Open your browser to http://localhost:3000
+4. Open your browser to http://localhost:3000
 
 ## How it Works
 
-The form lets users add new entries to the timeline by:
-1. Filling out the event details
-2. Uploading an image 
-3. Submitting the form
+This form allows users to:
+1. Add timeline entries with dates, descriptions, and images
+2. Submit the form without requiring GitHub authentication
+3. Have images automatically uploaded to the GitHub repository
+4. Have the timeline-data.csv file automatically updated
 
-This is a simplified client-side only implementation:
-- Images are handled client-side (with download prompt)
-- CSV changes are simulated (logged to console)
+### Vercel Serverless Functions
 
-## Implementation Notes
+This implementation uses Vercel serverless functions to:
+- Handle server-side GitHub authentication using a stored token
+- Upload images to the `/images` folder of your repository
+- Update the `timeline-data.csv` file automatically
+- Use raw.githubusercontent.com URLs for displaying images
 
-### Client-Side Only Implementation
+## Deployment to Vercel
 
-This implementation is simplified for local development and demonstration:
+1. Update the `utils/config.js` file with your GitHub username and repository name:
+   ```js
+   export const GITHUB_USERNAME = 'your-username';
+   export const GITHUB_REPO = 'your-repo-name';
+   ```
 
-1. When a form is submitted:
-   - A unique filename is generated for the image
-   - The user is prompted to download the image (which would normally be saved server-side)
-   - The entry details are logged to the console (which would normally update the CSV file)
+2. Create a GitHub Personal Access Token with repo permissions:
+   - Go to GitHub → Settings → Developer Settings → Personal Access Tokens
+   - Generate a new token with `repo` scope
+   - Keep this token secure for the next step
 
-2. For a production implementation, you would need:
-   - A small server component to handle file uploads
-   - Server-side code to update the CSV file
+3. Deploy to Vercel:
+   - Connect your GitHub repository to Vercel
+   - Configure environment variables (see below)
+   - Deploy
 
-### For Content Editors: Using the Form
+### Setting Up Environment Variables in Vercel
 
-1. Fill out all required fields:
-   - Date (e.g., "July 1, 2024")
-   - Title
-   - Description (main text)
-   - Upload an image
-   - Select position (left or right)
-2. Add optional additional descriptions if needed
-3. Submit the form
-4. For demonstration purposes, you'll be prompted to save the image
+In your Vercel project settings, add the following environment variables:
+
+1. `GITHUB_TOKEN`: Your GitHub Personal Access Token with repo permissions
+2. `GITHUB_USERNAME`: Your GitHub username
+3. `GITHUB_REPO`: Your repository name
+4. `GITHUB_BRANCH`: The branch to commit to (usually "main")
+
+To add environment variables in Vercel:
+1. Go to your project in the Vercel dashboard
+2. Click on "Settings"
+3. Go to the "Environment Variables" section
+4. Add each variable with its corresponding value
+5. Deploy or redeploy your application
+
+## Development Environment
+
+For local development, you can create a `.env` file in the root of your project:
+
+```
+GITHUB_TOKEN=your_github_token
+GITHUB_USERNAME=your_username
+GITHUB_REPO=your_repo_name
+GITHUB_BRANCH=main
+```
+
+Note: The `.env` file should be added to your `.gitignore` to prevent accidentally committing your token.
+
+## User Flow
+
+1. Users visit the form page
+2. They fill out the form with date, year, description, and image
+3. Upon submission:
+   - The form calls the Vercel serverless function
+   - The function uses the stored GitHub token to update the repository
+   - Images are uploaded with consistent naming
+   - The CSV file is updated with the new entry
+   - A success message is displayed
+
+## Image Naming Convention
+
+Images are automatically named using this pattern:
+```
+date-year_description-excerpt_random.jpg
+```
+
+Example: `july-1-2024_trump-wins-major-su_123.jpg`
 
 ## CSV Format
 
 The timeline data is stored in CSV format with these columns:
 ```
-date,title,description,description-2,description-3,image,position
+date,year,description,description2,description3,image,position
 ```
-
-## Adding Server Support
-
-To implement actual server-side support:
-
-1. Create an API endpoint that:
-   - Accepts multipart form data
-   - Processes the image upload to the images directory
-   - Appends data to the CSV file
-
-2. Update the form component to use this endpoint
