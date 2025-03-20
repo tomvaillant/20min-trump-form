@@ -1,6 +1,6 @@
 <script>
   import { createEventDispatcher } from 'svelte';
-  import { handleImageUpload, processSubmission } from '../utils/apiUtils.js';
+  import { handleImageUpload, processSubmission, compressImage } from '../utils/apiUtils.js';
   import { getImageUrl } from '../utils/config.js';
 
   const dispatch = createEventDispatcher();
@@ -24,17 +24,34 @@
   let submitting = false;
   let error = '';
   let success = '';
+  let originalImageSize = '';
+  let compressedImageSize = '';
 
   // Handle image selection
-  function handleImageChange(event) {
+  async function handleImageChange(event) {
     const file = event.target.files[0];
     if (file) {
+      // Store original size for display
+      originalImageSize = (file.size / 1024).toFixed(2) + ' KB';
+      
+      // Store original file
       imageFile = file;
+      
+      // Show preview of the original image
       const reader = new FileReader();
       reader.onload = e => {
         imagePreview = e.target.result;
       };
       reader.readAsDataURL(file);
+      
+      // Try to compress the image in background to see size reduction
+      try {
+        const compressed = await compressImage(file);
+        compressedImageSize = (compressed.size / 1024).toFixed(2) + ' KB';
+      } catch (err) {
+        console.error('Preview compression error:', err);
+        compressedImageSize = originalImageSize;
+      }
     }
   }
 
@@ -261,7 +278,7 @@
   </div>
   
   <div class="form-group">
-    <label for="image">Image <span class="required">*</span></label>
+    <label for="image">Image <span class="required">*</span> <span class="file-info">(Will be compressed to max 300KB)</span></label>
     <input 
       type="file" 
       id="image" 
@@ -273,6 +290,16 @@
     {#if imagePreview}
       <div class="image-preview">
         <img src={imagePreview} alt="Preview" />
+        <div class="image-info">
+          <p>Original size: {originalImageSize}</p>
+          {#if compressedImageSize && compressedImageSize !== originalImageSize}
+            <p>Will be compressed to: {compressedImageSize} 
+              <span class="compression-info">
+                ({Math.round((1 - (parseFloat(compressedImageSize) / parseFloat(originalImageSize))) * 100)}% reduction)
+              </span>
+            </p>
+          {/if}
+        </div>
       </div>
     {/if}
   </div>
@@ -313,6 +340,13 @@
   .required {
     color: #0088ff;
   }
+  
+  .file-info {
+    font-size: 0.8rem;
+    font-weight: normal;
+    color: #666;
+    margin-left: 5px;
+  }
 
   input[type="text"],
   input[type="url"],
@@ -345,6 +379,24 @@
     max-width: 100%;
     border-radius: 4px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  
+  .image-info {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: #555;
+    background-color: #f5f5f5;
+    padding: 8px;
+    border-radius: 4px;
+  }
+  
+  .image-info p {
+    margin: 4px 0;
+  }
+  
+  .compression-info {
+    color: #0088ff;
+    font-weight: 600;
   }
 
   .message {

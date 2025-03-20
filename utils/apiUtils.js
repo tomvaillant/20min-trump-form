@@ -4,11 +4,32 @@
  */
 
 import { getImageUrl } from './config.js';
+import imageCompression from 'browser-image-compression';
 
 // Get the base API URL - use relative paths in development, full URLs in production
 const getApiUrl = () => {
   return location.hostname === 'localhost' ? '/api' : `${location.origin}/api`;
 };
+
+/**
+ * Compress image before upload
+ */
+export async function compressImage(imageFile) {
+  try {
+    const options = {
+      maxSizeMB: 0.3,           // Maximum file size in MB (300KB)
+      maxWidthOrHeight: 1000,   // Maximum width or height
+      useWebWorker: true,       // Use web worker for better performance
+      initialQuality: 0.8       // Initial quality setting for compression
+    };
+    
+    return await imageCompression(imageFile, options);
+  } catch (error) {
+    console.error('Image compression error:', error);
+    // If compression fails, return the original file
+    return imageFile;
+  }
+}
 
 /**
  * Process image upload and generate consistent filename
@@ -46,8 +67,11 @@ export function handleImageUpload(imageFile, date, title) {
  */
 export async function processSubmission(entry, imageFile, imageFilename) {
   try {
-    // Convert the image file to base64
-    const imageData = await fileToBase64(imageFile);
+    // Compress the image before converting to base64
+    const compressedImage = await compressImage(imageFile);
+    
+    // Convert the compressed image to base64
+    const imageData = await fileToBase64(compressedImage);
     
     // Send form data to the serverless function
     const response = await fetch(`${getApiUrl()}/submit-entry/`, {
