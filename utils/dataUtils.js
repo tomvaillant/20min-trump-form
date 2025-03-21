@@ -11,7 +11,12 @@ export async function fetchTimelineData() {
     // In production on GitHub Pages, use the raw GitHub URL
     const dataUrl = location.hostname === 'localhost' ? './timeline-data.csv' : getDataUrl();
     
-    const response = await fetch(dataUrl);
+    // Include auth credentials for production
+    const headers = location.hostname !== 'localhost' 
+      ? { 'Authorization': 'Basic ' + btoa('20-min:trumpets') }
+      : {};
+    
+    const response = await fetch(dataUrl, { headers });
     if (!response.ok) {
       throw new Error('Failed to load timeline data');
     }
@@ -49,11 +54,68 @@ export async function fetchTimelineData() {
 export function escapeCSV(field) {
   if (!field) return '';
   
-  // If field contains comma, newline or double quote, enclose it in double quotes
-  if (field.includes(',') || field.includes('\n') || field.includes('"')) {
+  // Remove any newlines to prevent breaking CSV structure
+  const sanitizedField = field.replace(/\n/g, ' ');
+  
+  // If field contains comma or double quote, enclose it in double quotes
+  if (sanitizedField.includes(',') || sanitizedField.includes('"')) {
     // Replace double quotes with two double quotes
-    return '"' + field.replace(/"/g, '""') + '"';
+    return '"' + sanitizedField.replace(/"/g, '""') + '"';
   }
   
-  return field;
+  return sanitizedField;
+}
+
+/**
+ * Determines the current quarter (Q1, Q2, Q3, Q4) based on current date
+ * @returns {string} Current quarter in "Q#" format
+ */
+export function getCurrentQuarter() {
+  const now = new Date();
+  const month = now.getMonth() + 1; // getMonth() is zero-indexed
+  
+  if (month <= 3) {
+    return "Q1";
+  } else if (month <= 6) {
+    return "Q2";
+  } else if (month <= 9) {
+    return "Q3";
+  } else {
+    return "Q4";
+  }
+}
+
+/**
+ * Determines the quarter based on a month name or number
+ * @param {string} monthStr - Month string like "Jan", "Feb", or number 1-12
+ * @returns {string} Quarter in "Q#" format
+ */
+export function getQuarterFromMonth(monthStr) {
+  // Convert month string to number
+  let month;
+  
+  if (!isNaN(monthStr)) {
+    // If it's already a number
+    month = parseInt(monthStr);
+  } else {
+    // Convert month name to number
+    const monthNames = {
+      'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
+      'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12,
+      'mär': 3, 'märz': 3 // German spelling variants
+    };
+    
+    const normalizedMonth = monthStr.toLowerCase().substring(0, 3);
+    month = monthNames[normalizedMonth] || 1;
+  }
+  
+  if (month <= 3) {
+    return "Q1";
+  } else if (month <= 6) {
+    return "Q2";
+  } else if (month <= 9) {
+    return "Q3";
+  } else {
+    return "Q4";
+  }
 }

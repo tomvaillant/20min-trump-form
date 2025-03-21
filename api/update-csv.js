@@ -1,5 +1,6 @@
 // Vercel Serverless Function for updating the CSV file
 import { Octokit } from '@octokit/rest';
+import { getCurrentQuarter } from '../utils/dataUtils.js';
 
 // GitHub configuration - these will come from environment variables
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
@@ -16,12 +17,40 @@ function getOctokit() {
   return new Octokit({ auth: GITHUB_TOKEN });
 }
 
+// Authentication check
+function isAuthenticated(req) {
+  // In production with Vercel middleware, this is automatically handled
+  // For server-side/development, handle it here
+  
+  // Skip auth check for API in development
+  if (process.env.NODE_ENV === 'development') {
+    return true;
+  }
+  
+  const authHeader = req.headers.authorization;
+  
+  if (!authHeader || !authHeader.startsWith('Basic ')) {
+    return false;
+  }
+  
+  try {
+    const base64Credentials = authHeader.split(' ')[1];
+    const credentials = Buffer.from(base64Credentials, 'base64').toString('utf-8');
+    const [username, password] = credentials.split(':');
+    
+    return (username === '20-min' && password === 'trumpets');
+  } catch (error) {
+    console.error('Auth error:', error);
+    return false;
+  }
+}
+
 // Main handler function
 export default async (req, res) => {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   
   // Handle preflight OPTIONS request
   if (req.method === 'OPTIONS') {
@@ -33,11 +62,19 @@ export default async (req, res) => {
     return res.status(405).json({ error: 'Method not allowed' });
   }
   
+  // Check authentication
+  if (!isAuthenticated(req)) {
+    return res.status(401).json({ 
+      error: 'Unauthorized',
+      message: 'Authentication required'
+    });
+  }
+  
   try {
     // Parse the request body
     const { entry } = req.body;
     
-    if (!entry || !entry.date || !entry.year || !entry.description || !entry.imagePath) {
+    if (!entry || !entry.date || !entry.description) {
       return res.status(400).json({ error: 'Missing required entry data' });
     }
     
@@ -123,15 +160,26 @@ function addEntryToCsv(csvContent, entry) {
   // Process the CSV content
   const lines = csvContent.split('\n');
   
+  // Get current quarter
+  const quarter = getCurrentQuarter();
+  
   // Format the new entry as a CSV row
   const newRow = [
     escapeCSV(entry.date),
-    escapeCSV(entry.year),
     escapeCSV(entry.description),
     escapeCSV(entry.description2 || ''),
     escapeCSV(entry.description3 || ''),
+    escapeCSV(entry.description4 || ''),
+    escapeCSV(entry.description5 || ''),
+    escapeCSV(entry.description6 || ''),
+    escapeCSV(entry.link || ''),
+    escapeCSV(entry.link2 || ''),
+    escapeCSV(entry.link3 || ''),
+    escapeCSV(entry.link4 || ''),
+    escapeCSV(entry.link5 || ''),
+    escapeCSV(entry.link6 || ''),
     escapeCSV(entry.imagePath || ''),
-    escapeCSV(entry.position || 'right')
+    escapeCSV(quarter)
   ].join(',');
   
   // Add the new row and join back together
@@ -143,11 +191,14 @@ function addEntryToCsv(csvContent, entry) {
 function escapeCSV(field) {
   if (!field) return '';
   
-  // If field contains comma, newline or double quote, enclose it in double quotes
-  if (field.includes(',') || field.includes('\n') || field.includes('"')) {
+  // Remove any newlines to prevent breaking CSV structure
+  const sanitizedField = field.replace(/\n/g, ' ');
+  
+  // If field contains comma or double quote, enclose it in double quotes
+  if (sanitizedField.includes(',') || sanitizedField.includes('"')) {
     // Replace double quotes with two double quotes
-    return '"' + field.replace(/"/g, '""') + '"';
+    return '"' + sanitizedField.replace(/"/g, '""') + '"';
   }
   
-  return field;
+  return sanitizedField;
 }

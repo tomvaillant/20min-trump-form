@@ -57,7 +57,7 @@
 
   // Form submission
   async function handleSubmit() {
-    if (!date || !description || !imageFile) {
+    if (!date || !description) {
       error = 'Please fill out all required fields';
       return;
     }
@@ -67,13 +67,16 @@
       error = '';
       success = '';
 
-      // Process the image with consistent naming convention
-      const eventDate = date;
-      const eventTitle = description.substring(0, 20); // Use first 20 chars of description as title
-      const imageResult = handleImageUpload(imageFile, eventDate, eventTitle);
-      
-      // Full GitHub raw URL path for the image
-      const imagePath = imageResult.fullPath;
+      // Process the image with consistent naming convention (if provided)
+      let imagePath = '';
+      if (imageFile) {
+        const eventDate = date;
+        const eventTitle = description.substring(0, 20); // Use first 20 chars of description as title
+        const imageResult = handleImageUpload(imageFile, eventDate, eventTitle);
+        
+        // Full GitHub raw URL path for the image
+        imagePath = imageResult.fullPath;
+      }
       
       // Create an entry object for submission
       const entry = {
@@ -95,7 +98,23 @@
       };
       
       // Process the submission through Vercel serverless function
-      const result = await processSubmission(entry, imageFile, imageResult.filename);
+      let result;
+      if (imageFile) {
+        const imageFilename = imageFile ? eventDate.replace(/[^\w]/g, '-').toLowerCase() + '_' + 
+                             description.substring(0, 20).replace(/[^\w]/g, '-').toLowerCase() + '_' + 
+                             Math.floor(Math.random() * 1000) + '.webp' : '';
+        result = await processSubmission(entry, imageFile, imageFilename);
+      } else {
+        // Submit without image
+        result = await fetch(`${location.origin}/api/update-csv/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Basic ' + btoa('20-min:trumpets')  // Encode credentials
+          },
+          body: JSON.stringify({ entry })
+        }).then(r => r.json());
+      }
       
       if (result.success) {
         // Reset the form after successful submission
@@ -278,13 +297,12 @@
   </div>
   
   <div class="form-group">
-    <label for="image">Image <span class="required">*</span> <span class="file-info">(Will be compressed to max 300KB)</span></label>
+    <label for="image">Image <span class="file-info">(Will be compressed to max 300KB)</span></label>
     <input 
       type="file" 
       id="image" 
       accept="image/*" 
       on:change={handleImageChange} 
-      required
       disabled={submitting}
     >
     {#if imagePreview}

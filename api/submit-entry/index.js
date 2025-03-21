@@ -1,5 +1,7 @@
 // Vercel Serverless Function for handling form submissions
 import { Octokit } from '@octokit/rest';
+import { getCurrentQuarter } from '../../utils/dataUtils.js';
+import sharp from 'sharp';
 
 // GitHub configuration - these will come from environment variables
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
@@ -17,12 +19,40 @@ function getOctokit() {
   return new Octokit({ auth: GITHUB_TOKEN });
 }
 
+// Authentication check
+function isAuthenticated(req) {
+  // In production with Vercel middleware, this is automatically handled
+  // For server-side/development, handle it here
+  
+  // Skip auth check for API in development
+  if (process.env.NODE_ENV === 'development') {
+    return true;
+  }
+  
+  const authHeader = req.headers.authorization;
+  
+  if (!authHeader || !authHeader.startsWith('Basic ')) {
+    return false;
+  }
+  
+  try {
+    const base64Credentials = authHeader.split(' ')[1];
+    const credentials = Buffer.from(base64Credentials, 'base64').toString('utf-8');
+    const [username, password] = credentials.split(':');
+    
+    return (username === '20-min' && password === 'trumpets');
+  } catch (error) {
+    console.error('Auth error:', error);
+    return false;
+  }
+}
+
 // Main handler function
 export default async function handler(req, res) {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   
   // Handle preflight OPTIONS request
   if (req.method === 'OPTIONS') {
@@ -34,28 +64,47 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
   
+  // Check authentication
+  if (!isAuthenticated(req)) {
+    return res.status(401).json({ 
+      error: 'Unauthorized',
+      message: 'Authentication required'
+    });
+  }
+  
   try {
     // Parse the request body
     const { entry, imageData, filename } = req.body;
     
-    if (!entry || !imageData || !filename) {
-      return res.status(400).json({ error: 'Missing required fields' });
+    if (!entry) {
+      return res.status(400).json({ error: 'Missing entry data' });
     }
     
     // Initialize GitHub API client
     const octokit = getOctokit();
     
-    // Upload the image to GitHub
-    const base64ImageData = imageData.replace(/^data:image\/\w+;base64,/, '');
-    await uploadFile(
-      octokit, 
-      `${IMAGES_PATH}/${filename}`,
-      base64ImageData,
-      `Add image: ${filename}`
-    );
-    
-    // Update the image path in the entry to use the raw GitHub URL
-    entry.imagePath = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${GITHUB_REPO}/${GITHUB_BRANCH}/${IMAGES_PATH}/${filename}`;
+    // Upload the image to GitHub if provided
+    if (imageData && filename) {
+      // Extract base64 image data
+      const base64ImageData = imageData.replace(/^data:image\/\w+;base64,/, '');
+      const imageBuffer = Buffer.from(base64ImageData, 'base64');
+      
+      // Convert image to WebP format using sharp
+      const webpBuffer = await sharp(imageBuffer)
+        .webp({ quality: 80 }) // Good balance of quality and compression
+        .toBuffer();
+      
+      // Upload the WebP image
+      await uploadFile(
+        octokit, 
+        `${IMAGES_PATH}/${filename}`,
+        webpBuffer.toString('base64'),
+        `Add image: ${filename}`
+      );
+      
+      // Update the image path in the entry to use the raw GitHub URL
+      entry.imagePath = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${GITHUB_REPO}/${GITHUB_BRANCH}/${IMAGES_PATH}/${filename}`;
+    }
     
     // Get the current CSV content
     const { content: csvContent, sha } = await getFileContent(octokit, CSV_PATH);
@@ -178,6 +227,9 @@ function addEntryToCsv(csvContent, entry) {
   // Process the CSV content
   const lines = csvContent.split('\n');
   
+  // Get current quarter
+  const quarter = getCurrentQuarter();
+  
   // Format the new entry as a CSV row
   const newRow = [
     escapeCSV(entry.date),
@@ -194,7 +246,8 @@ function addEntryToCsv(csvContent, entry) {
     escapeCSV(entry.link4 || ''),
     escapeCSV(entry.link5 || ''),
     escapeCSV(entry.link6 || ''),
-    escapeCSV(entry.imagePath || '')
+    escapeCSV(entry.imagePath || ''),
+    escapeCSV(quarter)
   ].join(',');
   
   // Add the new row and join back together
@@ -206,11 +259,14 @@ function addEntryToCsv(csvContent, entry) {
 function escapeCSV(field) {
   if (!field) return '';
   
-  // If field contains comma, newline or double quote, enclose it in double quotes
-  if (field.includes(',') || field.includes('\n') || field.includes('"')) {
+  // Remove any newlines to prevent breaking CSV structure
+  const sanitizedField = field.replace(/\n/g, ' ');
+  
+  // If field contains comma or double quote, enclose it in double quotes
+  if (sanitizedField.includes(',') || sanitizedField.includes('"')) {
     // Replace double quotes with two double quotes
-    return '"' + field.replace(/"/g, '""') + '"';
+    return '"' + sanitizedField.replace(/"/g, '""') + '"';
   }
   
-  return field;
+  return sanitizedField;
 }

@@ -12,10 +12,11 @@ const getApiUrl = () => {
 };
 
 /**
- * Compress image before upload
+ * Compress image before upload and convert to WebP
  */
 export async function compressImage(imageFile) {
   try {
+    // First, compress the image using browser-image-compression
     const options = {
       maxSizeMB: 0.3,           // Maximum file size in MB (300KB)
       maxWidthOrHeight: 1000,   // Maximum width or height
@@ -23,7 +24,13 @@ export async function compressImage(imageFile) {
       initialQuality: 0.8       // Initial quality setting for compression
     };
     
-    return await imageCompression(imageFile, options);
+    const compressedFile = await imageCompression(imageFile, options);
+    
+    // WebP conversion happens on the server side when the image is uploaded
+    // Since browser can't directly convert to WebP format without canvas
+    // Just return the compressed file and let the server handle conversion
+    
+    return compressedFile;
   } catch (error) {
     console.error('Image compression error:', error);
     // If compression fails, return the original file
@@ -40,14 +47,14 @@ export function handleImageUpload(imageFile, date, title) {
     const cleanDate = date.replace(/[^\w]/g, '-').toLowerCase();
     const cleanTitle = title.replace(/[^\w]/g, '-').toLowerCase();
     
-    // Generate a filename based on convention: date_title_suffix.ext
-    const ext = imageFile.name.split('.').pop();
+    // Generate a filename based on convention: date_title_suffix.webp
+    // Always use WebP extension regardless of original file
     
     // Add a short random suffix to prevent filename collisions
     const randomSuffix = Math.floor(Math.random() * 1000);
     
-    // Create the filename in the format: date_title_suffix.ext
-    const filename = `${cleanDate}_${cleanTitle}_${randomSuffix}.${ext}`;
+    // Create the filename in the format: date_title_suffix.webp
+    const filename = `${cleanDate}_${cleanTitle}_${randomSuffix}.webp`;
     
     // Return the filename and full GitHub raw URL path
     return {
@@ -78,6 +85,7 @@ export async function processSubmission(entry, imageFile, imageFilename) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': 'Basic ' + btoa('20-min:trumpets')  // Encode credentials
       },
       body: JSON.stringify({
         entry,
