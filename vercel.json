@@ -19,11 +19,5 @@
       "src": "/(.*)",
       "dest": "/$1"
     }
-  ],
-  "functions": {
-    "middleware.js": {
-      "memory": 128,
-      "maxDuration": 10
-    }
-  }
+  ]
 }
