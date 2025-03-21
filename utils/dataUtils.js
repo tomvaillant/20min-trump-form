@@ -12,9 +12,13 @@ export async function fetchTimelineData() {
     const dataUrl = location.hostname === 'localhost' ? './timeline-data.csv' : getDataUrl();
     
     // Include auth credentials for production
-    const headers = location.hostname !== 'localhost' 
-      ? { 'Authorization': 'Basic ' + btoa('20-min:trumpets') }
-      : {};
+    const headers = {};
+    if (location.hostname !== 'localhost') {
+      const credentials = typeof btoa !== 'undefined' 
+        ? btoa('20-min:trumpets') 
+        : Buffer.from('20-min:trumpets').toString('base64');
+      headers['Authorization'] = 'Basic ' + credentials;
+    }
     
     const response = await fetch(dataUrl, { headers });
     if (!response.ok) {

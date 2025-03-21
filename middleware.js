@@ -34,7 +34,18 @@ export default function middleware(request) {
   // Verify credentials
   try {
     const base64Credentials = authHeader.substring(6); // Remove 'Basic '
-    const credentials = atob(base64Credentials);
+    
+    // Use TextDecoder instead of atob for better compatibility
+    let credentials;
+    if (typeof Buffer !== 'undefined') {
+      // Node.js environment
+      credentials = Buffer.from(base64Credentials, 'base64').toString('utf-8');
+    } else {
+      // Edge runtime environment
+      const decoded = atob(base64Credentials);
+      credentials = decoded;
+    }
+    
     const [username, password] = credentials.split(':');
     
     if (username === VALID_USERNAME && password === VALID_PASSWORD) {

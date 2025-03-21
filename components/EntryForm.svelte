@@ -106,11 +106,13 @@
         result = await processSubmission(entry, imageFile, imageFilename);
       } else {
         // Submit without image
+        const authHeader = 'Basic ' + btoa('20-min:trumpets');  // Browser environment always has btoa
+        
         result = await fetch(`${location.origin}/api/update-csv/`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': 'Basic ' + btoa('20-min:trumpets')  // Encode credentials
+            'Authorization': authHeader
           },
           body: JSON.stringify({ entry })
         }).then(r => r.json());

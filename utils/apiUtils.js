@@ -81,11 +81,14 @@ export async function processSubmission(entry, imageFile, imageFilename) {
     const imageData = await fileToBase64(compressedImage);
     
     // Send form data to the serverless function
+    // Always use btoa in browser environment
+    const authHeader = 'Basic ' + btoa('20-min:trumpets');
+    
     const response = await fetch(`${getApiUrl()}/submit-entry/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Basic ' + btoa('20-min:trumpets')  // Encode credentials
+        'Authorization': authHeader
       },
       body: JSON.stringify({
         entry,

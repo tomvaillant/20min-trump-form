@@ -15,7 +15,18 @@ function decodeAuthHeader(authHeader) {
   try {
     // Remove "Basic " prefix and decode Base64
     const base64Credentials = authHeader.replace('Basic ', '');
-    const credentials = atob(base64Credentials);
+    
+    // Use Buffer for decoding in Node.js environment
+    // or atob in browser environment
+    let credentials;
+    if (typeof Buffer !== 'undefined') {
+      // Node.js environment
+      credentials = Buffer.from(base64Credentials, 'base64').toString('utf-8');
+    } else {
+      // Browser environment
+      credentials = atob(base64Credentials);
+    }
+    
     const [username, password] = credentials.split(':');
     
     return { username, password };

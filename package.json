@@ -9,7 +9,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "rename-images": "node scripts/renameImages.js",
-    "vercel-build": "vite build",
+    "vercel-build": "npm install && vite build",
     "convert-to-webp": "node scripts/convertToWebp.js",
     "update-csv-webp": "node scripts/updateCsvWithWebp.js",
     "cleanup-images": "node scripts/cleanupOriginalImages.js"
