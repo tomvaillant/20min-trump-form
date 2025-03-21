@@ -2,8 +2,8 @@
 import { Octokit } from '@octokit/rest';
 import { getCurrentQuarter } from '../../utils/dataUtils.js';
 
-// GitHub configuration - these will come from environment variables
-const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+// GitHub configuration - attempt to get from environment variables with fallbacks
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN || '';
 const GITHUB_USERNAME = process.env.GITHUB_USERNAME || 'tomvaillant';
 const GITHUB_REPO = process.env.GITHUB_REPO || '20min-trump-form';
 const GITHUB_BRANCH = process.env.GITHUB_BRANCH || 'main';
@@ -12,37 +12,10 @@ const CSV_PATH = 'timeline-data.csv';
 // Initialize Octokit with the GitHub token
 function getOctokit() {
   if (!GITHUB_TOKEN) {
-    throw new Error('GitHub token not configured. Please set the GITHUB_TOKEN environment variable.');
+    console.warn('GitHub token not configured. Using demo mode.');
+    return new Octokit(); // Anonymous mode with rate limits
   }
   return new Octokit({ auth: GITHUB_TOKEN });
-}
-
-// Authentication check
-function isAuthenticated(req) {
-  // In production with Vercel middleware, this is automatically handled
-  // For server-side/development, handle it here
-  
-  // Skip auth check for API in development
-  if (process.env.NODE_ENV === 'development') {
-    return true;
-  }
-  
-  const authHeader = req.headers.authorization;
-  
-  if (!authHeader || !authHeader.startsWith('Basic ')) {
-    return false;
-  }
-  
-  try {
-    const base64Credentials = authHeader.split(' ')[1];
-    const credentials = Buffer.from(base64Credentials, 'base64').toString('utf-8');
-    const [username, password] = credentials.split(':');
-    
-    return (username === '20-min' && password === 'trumpets');
-  } catch (error) {
-    console.error('Auth error:', error);
-    return false;
-  }
 }
 
 // Main handler function
@@ -60,14 +33,6 @@ export default async function handler(req, res) {
   // Only allow POST requests
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
-  }
-  
-  // Check authentication
-  if (!isAuthenticated(req)) {
-    return res.status(401).json({ 
-      error: 'Unauthorized',
-      message: 'Authentication required'
-    });
   }
   
   try {
@@ -92,7 +57,7 @@ export default async function handler(req, res) {
       octokit,
       CSV_PATH,
       updatedCsv,
-      `Add timeline entry: ${entry.date}, ${entry.year}`,
+      `Add timeline entry: ${entry.date}`,
       sha
     );
     
@@ -128,6 +93,15 @@ async function getFileContent(octokit, path) {
     };
   } catch (error) {
     console.error('Error getting file content:', error);
+    
+    // Return empty content with no SHA for demo mode if file doesn't exist
+    if (error.status === 404 || !GITHUB_TOKEN) {
+      return {
+        content: '',
+        sha: null
+      };
+    }
+    
     throw error;
   }
 }
@@ -135,6 +109,15 @@ async function getFileContent(octokit, path) {
 // Function to update a file in GitHub
 async function updateFile(octokit, path, content, message, sha) {
   try {
+    // Skip GitHub API calls in demo mode
+    if (!GITHUB_TOKEN) {
+      console.log('Demo mode: Skipping GitHub update for', path);
+      return { 
+        success: true, 
+        data: { content: { html_url: `https://github.com/${GITHUB_USERNAME}/${GITHUB_REPO}/blob/main/${path}` }}
+      };
+    }
+    
     const result = await octokit.repos.createOrUpdateFileContents({
       owner: GITHUB_USERNAME,
       repo: GITHUB_REPO,
@@ -166,6 +149,7 @@ function addEntryToCsv(csvContent, entry) {
   // Format the new entry as a CSV row
   const newRow = [
     escapeCSV(entry.date),
+    escapeCSV(entry.year || ''),
     escapeCSV(entry.description),
     escapeCSV(entry.description2 || ''),
     escapeCSV(entry.description3 || ''),

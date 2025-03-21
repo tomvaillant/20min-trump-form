@@ -11,47 +11,52 @@ export async function fetchTimelineData() {
     // In production on GitHub Pages, use the raw GitHub URL
     const dataUrl = location.hostname === 'localhost' ? './timeline-data.csv' : getDataUrl();
     
-    // Include auth credentials for production
-    const headers = {};
-    if (location.hostname !== 'localhost') {
-      const credentials = typeof btoa !== 'undefined' 
-        ? btoa('20-min:trumpets') 
-        : Buffer.from('20-min:trumpets').toString('base64');
-      headers['Authorization'] = 'Basic ' + credentials;
-    }
-    
-    const response = await fetch(dataUrl, { headers });
+    const response = await fetch(dataUrl);
     if (!response.ok) {
       throw new Error('Failed to load timeline data');
     }
     
     const data = await response.text();
-    const rows = data.split('\n');
-    const headers = rows[0].split(',');
-    
-    // Parse the CSV data
-    const items = rows.slice(1)
-      .filter(row => row.trim() !== '')
-      .map(row => {
-        const values = row.split(',');
-        return {
-          date: values[0],
-          year: values[1],
-          description: values[2],
-          description2: values[3] ? values[3].trim() : '',
-          description3: values[4] ? values[4].trim() : '',
-          description4: values[5] ? values[5].trim() : '',
-          description5: values[6] ? values[6].trim() : '',
-          description6: values[7] ? values[7].trim() : '',
-          image: values[8] ? values[8].trim() : ''
-        };
-      });
-    
-    return items;
+    return parseTimelineData(data);
   } catch (err) {
     console.error('Error loading timeline data:', err);
     throw err;
   }
+}
+
+/**
+ * Parse CSV timeline data 
+ */
+export function parseTimelineData(csvData) {
+  if (!csvData) return [];
+  
+  const rows = csvData.split('\n');
+  const items = rows.slice(1)  // Skip header row
+    .filter(row => row.trim() !== '')
+    .map(row => {
+      // Basic CSV parsing (doesn't handle quoted fields with commas properly)
+      const values = row.split(',');
+      return {
+        date: values[0] || '',
+        year: values[1] || '',
+        description: values[2] || '',
+        description2: values[3] || '',
+        description3: values[4] || '',
+        description4: values[5] || '',
+        description5: values[6] || '',
+        description6: values[7] || '',
+        link: values[8] || '',
+        link2: values[9] || '',
+        link3: values[10] || '',
+        link4: values[11] || '',
+        link5: values[12] || '',
+        link6: values[13] || '',
+        imagePath: values[14] || '',
+        quarter: values[15] || ''
+      };
+    });
+  
+  return items;
 }
 
 // Escape CSV field to handle commas and quotes
@@ -71,22 +76,27 @@ export function escapeCSV(field) {
 }
 
 /**
- * Determines the current quarter (Q1, Q2, Q3, Q4) based on current date
- * @returns {string} Current quarter in "Q#" format
+ * Determines the current quarter (YYYY-Q#) based on current date
+ * @returns {string} Current quarter in "YYYY-Q#" format
  */
 export function getCurrentQuarter() {
   const now = new Date();
+  const year = now.getFullYear();
   const month = now.getMonth() + 1; // getMonth() is zero-indexed
   
+  // Determine quarter
+  let quarter;
   if (month <= 3) {
-    return "Q1";
+    quarter = "Q1";
   } else if (month <= 6) {
-    return "Q2";
+    quarter = "Q2";
   } else if (month <= 9) {
-    return "Q3";
+    quarter = "Q3";
   } else {
-    return "Q4";
+    quarter = "Q4";
   }
+  
+  return `${year}-${quarter}`;
 }
 
 /**

@@ -1,10 +1,13 @@
 /**
  * Vercel Edge Middleware for HTTP Basic Authentication
+ * 
+ * NOTE: This file is only used in production environments.
+ * In development, no authentication is required.
  */
 
-// Hardcoded credentials
-const VALID_USERNAME = '20-min';
-const VALID_PASSWORD = 'trumpets';
+// FOR DEMO PURPOSES ONLY - IN PRODUCTION THESE SHOULD BE ENVIRONMENT VARIABLES
+const USERNAME = process.env.AUTH_USERNAME || '20-min';
+const PASSWORD = process.env.AUTH_PASSWORD || 'trumpets';
 
 /**
  * Middleware function for Vercel Edge
@@ -18,12 +21,17 @@ export default function middleware(request) {
     return;
   }
   
+  // Skip auth for development environment
+  if (process.env.NODE_ENV === 'development') {
+    return;
+  }
+  
   // Get auth header
   const authHeader = request.headers.get('Authorization');
   
   if (!authHeader || !authHeader.startsWith('Basic ')) {
     // No auth header, send 401 Unauthorized
-    return new Response(null, {
+    return new Response('Authentication required', {
       status: 401,
       headers: {
         'WWW-Authenticate': 'Basic realm="Trump Timeline Form", charset="UTF-8"'
@@ -35,26 +43,25 @@ export default function middleware(request) {
   try {
     const base64Credentials = authHeader.substring(6); // Remove 'Basic '
     
-    // Use TextDecoder instead of atob for better compatibility
+    // Parse credentials with support for both Node.js and browser environments
     let credentials;
     if (typeof Buffer !== 'undefined') {
       // Node.js environment
       credentials = Buffer.from(base64Credentials, 'base64').toString('utf-8');
     } else {
-      // Edge runtime environment
-      const decoded = atob(base64Credentials);
-      credentials = decoded;
+      // Browser environment
+      credentials = atob(base64Credentials);
     }
     
     const [username, password] = credentials.split(':');
     
-    if (username === VALID_USERNAME && password === VALID_PASSWORD) {
+    if (username === USERNAME && password === PASSWORD) {
       // Auth successful, continue to app
       return;
     }
     
     // Invalid credentials
-    return new Response(null, {
+    return new Response('Invalid credentials', {
       status: 401,
       headers: {
         'WWW-Authenticate': 'Basic realm="Trump Timeline Form", charset="UTF-8"'

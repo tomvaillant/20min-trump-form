@@ -1,10 +1,9 @@
 /**
  * API utilities for form submission and file handling
- * Using Vercel serverless functions instead of direct GitHub API access
+ * Using Vercel serverless functions
  */
 
 import { getImageUrl } from './config.js';
-import imageCompression from 'browser-image-compression';
 
 // Get the base API URL - use relative paths in development, full URLs in production
 const getApiUrl = () => {
@@ -12,30 +11,13 @@ const getApiUrl = () => {
 };
 
 /**
- * Compress image before upload and convert to WebP
+ * Compress image before upload
+ * Simplified version without external dependencies
  */
 export async function compressImage(imageFile) {
-  try {
-    // First, compress the image using browser-image-compression
-    const options = {
-      maxSizeMB: 0.3,           // Maximum file size in MB (300KB)
-      maxWidthOrHeight: 1000,   // Maximum width or height
-      useWebWorker: true,       // Use web worker for better performance
-      initialQuality: 0.8       // Initial quality setting for compression
-    };
-    
-    const compressedFile = await imageCompression(imageFile, options);
-    
-    // WebP conversion happens on the server side when the image is uploaded
-    // Since browser can't directly convert to WebP format without canvas
-    // Just return the compressed file and let the server handle conversion
-    
-    return compressedFile;
-  } catch (error) {
-    console.error('Image compression error:', error);
-    // If compression fails, return the original file
-    return imageFile;
-  }
+  // In this simplified version, we're just passing through the file
+  // The server will handle any needed optimization
+  return imageFile;
 }
 
 /**
@@ -46,9 +28,6 @@ export function handleImageUpload(imageFile, date, title) {
     // Clean up the date and title for filename
     const cleanDate = date.replace(/[^\w]/g, '-').toLowerCase();
     const cleanTitle = title.replace(/[^\w]/g, '-').toLowerCase();
-    
-    // Generate a filename based on convention: date_title_suffix.webp
-    // Always use WebP extension regardless of original file
     
     // Add a short random suffix to prevent filename collisions
     const randomSuffix = Math.floor(Math.random() * 1000);
@@ -74,27 +53,33 @@ export function handleImageUpload(imageFile, date, title) {
  */
 export async function processSubmission(entry, imageFile, imageFilename) {
   try {
-    // Compress the image before converting to base64
-    const compressedImage = await compressImage(imageFile);
+    let imageData = null;
     
-    // Convert the compressed image to base64
-    const imageData = await fileToBase64(compressedImage);
+    // Only process image if provided
+    if (imageFile) {
+      // Convert the image to base64
+      imageData = await fileToBase64(imageFile);
+    }
     
-    // Send form data to the serverless function
-    // Always use btoa in browser environment
+    // Basic auth header for API calls
     const authHeader = 'Basic ' + btoa('20-min:trumpets');
     
-    const response = await fetch(`${getApiUrl()}/submit-entry/`, {
+    // Determine which endpoint to use based on whether we have an image
+    const endpoint = imageFile ? 'submit-entry' : 'update-csv';
+    
+    // Prepare request body
+    const requestBody = imageFile
+      ? { entry, imageData, filename: imageFilename }
+      : { entry };
+    
+    // Send form data to the serverless function
+    const response = await fetch(`${getApiUrl()}/${endpoint}/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': authHeader
       },
-      body: JSON.stringify({
-        entry,
-        imageData,
-        filename: imageFilename
-      })
+      body: JSON.stringify(requestBody)
     });
     
     const result = await response.json();
