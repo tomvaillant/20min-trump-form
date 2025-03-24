@@ -2,7 +2,8 @@
  * Vercel Edge Middleware for Basic HTTP Authentication
  */
 
-export default function middleware(request) {
+// Export a named middleware function instead of default
+export function middleware(request) {
   // Get auth credentials from request
   const basicAuth = request.headers.get('authorization');
 
