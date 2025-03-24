@@ -11,6 +11,14 @@ const getApiUrl = () => {
 };
 
 /**
+ * Simple pass-through function (no compression)
+ */
+export function compressImage(imageFile) {
+  // Just pass through the image file as-is
+  return Promise.resolve(imageFile);
+}
+
+/**
  * Process image upload and generate consistent filename
  */
 export function handleImageUpload(imageFile, date, title) {

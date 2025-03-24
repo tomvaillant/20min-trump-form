@@ -25,7 +25,6 @@
   let error = '';
   let success = '';
   let originalImageSize = '';
-  let compressedImageSize = '';
 
   // Handle image selection
   async function handleImageChange(event) {
@@ -43,15 +42,6 @@
         imagePreview = e.target.result;
       };
       reader.readAsDataURL(file);
-      
-      // Try to compress the image in background to see size reduction
-      try {
-        const compressed = await compressImage(file);
-        compressedImageSize = (compressed.size / 1024).toFixed(2) + ' KB';
-      } catch (err) {
-        console.error('Preview compression error:', err);
-        compressedImageSize = originalImageSize;
-      }
     }
   }
 
@@ -100,19 +90,18 @@
       // Process the submission through Vercel serverless function
       let result;
       if (imageFile) {
-        const imageFilename = imageFile ? eventDate.replace(/[^\w]/g, '-').toLowerCase() + '_' + 
-                             description.substring(0, 20).replace(/[^\w]/g, '-').toLowerCase() + '_' + 
-                             Math.floor(Math.random() * 1000) + '.webp' : '';
+        // Get extension from original file
+        const fileExt = imageFile.name.split('.').pop().toLowerCase();
+        const imageFilename = date.replace(/[^\w]/g, '-').toLowerCase() + '_' + 
+                            description.substring(0, 20).replace(/[^\w]/g, '-').toLowerCase() + '_' + 
+                            Math.floor(Math.random() * 1000) + '.' + fileExt;
         result = await processSubmission(entry, imageFile, imageFilename);
       } else {
         // Submit without image
-        const authHeader = 'Basic ' + btoa('20-min:trumpets');  // Browser environment always has btoa
-        
         result = await fetch(`${location.origin}/api/update-csv/`, {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': authHeader
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({ entry })
         }).then(r => r.json());
@@ -299,7 +288,7 @@
   </div>
   
   <div class="form-group">
-    <label for="image">Image <span class="file-info">(Will be compressed to max 300KB)</span></label>
+    <label for="image">Image</label>
     <input 
       type="file" 
       id="image" 
@@ -311,14 +300,7 @@
       <div class="image-preview">
         <img src={imagePreview} alt="Preview" />
         <div class="image-info">
-          <p>Original size: {originalImageSize}</p>
-          {#if compressedImageSize && compressedImageSize !== originalImageSize}
-            <p>Will be compressed to: {compressedImageSize} 
-              <span class="compression-info">
-                ({Math.round((1 - (parseFloat(compressedImageSize) / parseFloat(originalImageSize))) * 100)}% reduction)
-              </span>
-            </p>
-          {/if}
+          <p>Size: {originalImageSize}</p>
         </div>
       </div>
     {/if}
@@ -359,13 +341,6 @@
 
   .required {
     color: #0088ff;
-  }
-  
-  .file-info {
-    font-size: 0.8rem;
-    font-weight: normal;
-    color: #666;
-    margin-left: 5px;
   }
 
   input[type="text"],
@@ -412,11 +387,6 @@
   
   .image-info p {
     margin: 4px 0;
-  }
-  
-  .compression-info {
-    color: #0088ff;
-    font-weight: 600;
   }
 
   .message {
