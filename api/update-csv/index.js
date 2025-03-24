@@ -18,6 +18,27 @@ function getOctokit() {
   return new Octokit({ auth: GITHUB_TOKEN });
 }
 
+// Check authentication against environment variables
+function isAuthenticated(req) {
+  const authHeader = req.headers.authorization;
+  
+  if (!authHeader || !authHeader.startsWith('Basic ')) {
+    return false;
+  }
+  
+  // Extract credentials
+  const base64Credentials = authHeader.replace('Basic ', '');
+  const credentials = Buffer.from(base64Credentials, 'base64').toString('utf-8');
+  const [username, password] = credentials.split(':');
+  
+  // Check against environment variables
+  const validUsername = process.env.AUTH_USERNAME;
+  const validPassword = process.env.AUTH_PASSWORD;
+  
+  // Return true if credentials match
+  return username === validUsername && password === validPassword;
+}
+
 // Main handler function
 export default async function handler(req, res) {
   // Set CORS headers
@@ -33,6 +54,14 @@ export default async function handler(req, res) {
   // Only allow POST requests
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+  
+  // Check authentication
+  if (!isAuthenticated(req)) {
+    return res.status(401).json({ 
+      success: false,
+      error: 'Authentication required' 
+    });
   }
   
   try {

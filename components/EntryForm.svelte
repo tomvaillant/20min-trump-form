@@ -45,6 +45,41 @@
     }
   }
 
+  // Authentication variables
+  let showAuthDialog = false;
+  let authUsername = '';
+  let authPassword = '';
+  let authError = '';
+
+  // Function to get auth credentials
+  async function getAuthCredentials() {
+    if (authUsername && authPassword) {
+      return { username: authUsername, password: authPassword };
+    }
+    
+    // Show auth dialog and wait for credentials
+    return new Promise((resolve, reject) => {
+      showAuthDialog = true;
+      
+      // Set up a function to handle submission of the auth dialog
+      window.submitAuth = () => {
+        if (!authUsername || !authPassword) {
+          authError = 'Please enter both username and password';
+          return;
+        }
+        
+        showAuthDialog = false;
+        resolve({ username: authUsername, password: authPassword });
+      };
+      
+      // Set up a function to handle cancellation
+      window.cancelAuth = () => {
+        showAuthDialog = false;
+        reject(new Error('Authentication cancelled'));
+      };
+    });
+  }
+
   // Form submission
   async function handleSubmit() {
     if (!date || !description) {
@@ -56,6 +91,14 @@
       submitting = true;
       error = '';
       success = '';
+      
+      // Get authentication credentials
+      let auth;
+      try {
+        auth = await getAuthCredentials();
+      } catch (authError) {
+        throw new Error('Authentication required to submit entries');
+      }
 
       // Process the image with consistent naming convention (if provided)
       let imagePath = '';
@@ -87,6 +130,9 @@
         imagePath
       };
       
+      // Create auth header
+      const authHeader = 'Basic ' + btoa(`${auth.username}:${auth.password}`);
+      
       // Process the submission through Vercel serverless function
       let result;
       if (imageFile) {
@@ -95,16 +141,37 @@
         const imageFilename = date.replace(/[^\w]/g, '-').toLowerCase() + '_' + 
                             description.substring(0, 20).replace(/[^\w]/g, '-').toLowerCase() + '_' + 
                             Math.floor(Math.random() * 1000) + '.' + fileExt;
-        result = await processSubmission(entry, imageFile, imageFilename);
+        
+        // Use authentication with submission
+        const requestBody = { entry, imageData: await fileToBase64(imageFile), filename: imageFilename };
+        result = await fetch(`${location.origin}/api/submit-entry/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': authHeader
+          },
+          body: JSON.stringify(requestBody)
+        }).then(r => {
+          if (r.status === 401) {
+            throw new Error('Invalid credentials');
+          }
+          return r.json();
+        });
       } else {
-        // Submit without image
+        // Submit without image, but with authentication
         result = await fetch(`${location.origin}/api/update-csv/`, {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Authorization': authHeader
           },
           body: JSON.stringify({ entry })
-        }).then(r => r.json());
+        }).then(r => {
+          if (r.status === 401) {
+            throw new Error('Invalid credentials');
+          }
+          return r.json();
+        });
       }
       
       if (result.success) {
@@ -138,6 +205,16 @@
     } finally {
       submitting = false;
     }
+  }
+  
+  // Helper function to convert file to base64
+  function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = error => reject(error);
+    });
   }
 </script>
 
@@ -320,6 +397,45 @@
   </button>
 </form>
 
+<!-- Authentication Dialog -->
+{#if showAuthDialog}
+  <div class="auth-dialog-overlay">
+    <div class="auth-dialog">
+      <h3>Authentication Required</h3>
+      <p>Please enter your credentials to submit this entry.</p>
+      
+      {#if authError}
+        <div class="auth-error">{authError}</div>
+      {/if}
+      
+      <div class="auth-form-group">
+        <label for="auth-username">Username</label>
+        <input 
+          type="text" 
+          id="auth-username" 
+          bind:value={authUsername} 
+          placeholder="Username"
+        >
+      </div>
+      
+      <div class="auth-form-group">
+        <label for="auth-password">Password</label>
+        <input 
+          type="password" 
+          id="auth-password" 
+          bind:value={authPassword} 
+          placeholder="Password"
+        >
+      </div>
+      
+      <div class="auth-buttons">
+        <button type="button" class="auth-cancel-btn" on:click={window.cancelAuth}>Cancel</button>
+        <button type="button" class="auth-submit-btn" on:click={window.submitAuth}>Submit</button>
+      </div>
+    </div>
+  </div>
+{/if}
+
 <style>
   .entry-form {
     background-color: #fff;
@@ -345,6 +461,7 @@
 
   input[type="text"],
   input[type="url"],
+  input[type="password"],
   textarea {
     width: 100%;
     padding: 10px;
@@ -427,5 +544,83 @@
   .submit-btn[disabled] {
     background-color: #cccccc;
     cursor: not-allowed;
+  }
+  
+  /* Authentication Dialog Styles */
+  .auth-dialog-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+  
+  .auth-dialog {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    padding: 24px;
+    width: 400px;
+    max-width: 90%;
+  }
+  
+  .auth-dialog h3 {
+    margin-top: 0;
+    color: #0088ff;
+  }
+  
+  .auth-form-group {
+    margin-bottom: 16px;
+  }
+  
+  .auth-error {
+    background-color: #fce8e6;
+    color: #c5221f;
+    padding: 8px;
+    border-radius: 4px;
+    margin-bottom: 16px;
+    font-size: 0.9rem;
+  }
+  
+  .auth-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 24px;
+  }
+  
+  .auth-submit-btn {
+    background-color: #0088ff;
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  .auth-cancel-btn {
+    background-color: #f1f1f1;
+    color: #333;
+    border: none;
+    padding: 10px 16px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  
+  .auth-submit-btn:hover {
+    background-color: #0066cc;
+  }
+  
+  .auth-cancel-btn:hover {
+    background-color: #e0e0e0;
   }
 </style>
