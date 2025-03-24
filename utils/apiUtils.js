@@ -30,16 +30,21 @@ export function handleImageUpload(imageFile, date, title) {
     // Add a short random suffix to prevent filename collisions
     const randomSuffix = Math.floor(Math.random() * 1000);
     
-    // Create the filename with original extension
+    // Get original extension first but will be converted to WebP server-side
     const fileExt = imageFile.name.split('.').pop().toLowerCase();
+    
+    // Create filename with original extension (will be converted to WebP on server)
     const filename = `${cleanDate}_${cleanTitle}_${randomSuffix}.${fileExt}`;
     
-    // Return the filename and full GitHub raw URL path
+    // Create WebP filename for preview
+    const webpFilename = filename.replace(/\.(jpg|jpeg|png|gif)$/i, '.webp');
+    
+    // Return both filenames and full GitHub raw URL path
     return {
       success: true,
       filename: filename,
       originalName: imageFile.name,
-      fullPath: getImageUrl(filename)
+      fullPath: getImageUrl(webpFilename) // Use WebP filename for URL
     };
   } catch (error) {
     console.error('Image handling error:', error);

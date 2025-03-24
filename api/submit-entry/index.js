@@ -1,6 +1,7 @@
 // Vercel Serverless Function for handling form submissions
 import { Octokit } from '@octokit/rest';
 import { getCurrentQuarter } from '../../utils/dataUtils.js';
+import sharp from 'sharp';
 
 // GitHub configuration - attempt to get from environment variables with fallbacks
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN || '';
@@ -80,17 +81,40 @@ export default async function handler(req, res) {
     if (imageData && filename) {
       // Extract base64 image data
       const base64ImageData = imageData.replace(/^data:image\/\w+;base64,/, '');
+      const imageBuffer = Buffer.from(base64ImageData, 'base64');
       
-      // Upload the image as-is (keeping the original format)
-      await uploadFile(
-        octokit, 
-        `${IMAGES_PATH}/${filename}`,
-        base64ImageData,
-        `Add image: ${filename}`
-      );
+      // Convert to WebP format
+      const webpFilename = filename.replace(/\.(jpg|jpeg|png|gif)$/i, '.webp');
       
-      // Update the image path in the entry to use the raw GitHub URL
-      entry.imagePath = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${GITHUB_REPO}/${GITHUB_BRANCH}/${IMAGES_PATH}/${filename}`;
+      try {
+        // Convert image to WebP
+        const webpBuffer = await sharp(imageBuffer)
+          .webp({ quality: 80 })
+          .toBuffer();
+        
+        // Upload the WebP image
+        await uploadFile(
+          octokit, 
+          `${IMAGES_PATH}/${webpFilename}`,
+          webpBuffer.toString('base64'),
+          `Add image: ${webpFilename}`
+        );
+        
+        // Update the image path in the entry to use the raw GitHub URL with WebP extension
+        entry.imagePath = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${GITHUB_REPO}/${GITHUB_BRANCH}/${IMAGES_PATH}/${webpFilename}`;
+      } catch (error) {
+        console.error('WebP conversion error:', error);
+        // Fallback to original image if conversion fails
+        await uploadFile(
+          octokit, 
+          `${IMAGES_PATH}/${filename}`,
+          base64ImageData,
+          `Add image: ${filename}`
+        );
+        
+        // Use original image URL
+        entry.imagePath = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${GITHUB_REPO}/${GITHUB_BRANCH}/${IMAGES_PATH}/${filename}`;
+      }
     }
     
     // Get the current CSV content
