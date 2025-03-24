@@ -76,12 +76,11 @@ export function escapeCSV(field) {
 }
 
 /**
- * Determines the current quarter (YYYY-Q#) based on current date
- * @returns {string} Current quarter in "YYYY-Q#" format
+ * Determines the current quarter (Q#) based on current date
+ * @returns {string} Current quarter in "Q#" format without year
  */
 export function getCurrentQuarter() {
   const now = new Date();
-  const year = now.getFullYear();
   const month = now.getMonth() + 1; // getMonth() is zero-indexed
   
   // Determine quarter
@@ -96,7 +95,7 @@ export function getCurrentQuarter() {
     quarter = "Q4";
   }
   
-  return `${year}-${quarter}`;
+  return quarter; // Return just the quarter without year
 }
 
 /**

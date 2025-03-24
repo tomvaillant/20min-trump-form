@@ -114,13 +114,13 @@
       // Create an entry object for submission
       const entry = {
         date,
-        year: '',
-        description,
-        description2,
-        description3,
-        description4,
-        description5,
-        description6,
+        year: description, // Move description to year field for correct column positioning
+        description: description2 || '',
+        description2: description3 || '',
+        description3: description4 || '',
+        description4: description5 || '',
+        description5: description6 || '',
+        description6: '',
         link,
         link2,
         link3,
