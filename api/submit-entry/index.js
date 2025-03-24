@@ -265,28 +265,58 @@ function addEntryToCsv(csvContent, entry) {
   // Process the CSV content
   const lines = csvContent.split('\n');
   
+  // Get the header row to determine column structure
+  const headerRow = lines[0] || 'date,description,description2,description3,description4,description5,description6,link,link2,link3,link4,link5,link6,image,quarter';
+  const headerColumns = headerRow.split(',');
+  
   // Get current quarter
   const quarter = getCurrentQuarter();
   
+  // Create a properly formatted row based on the header structure
+  let rowData = {};
+  
+  // Map the entry data to the correct columns
+  rowData.date = entry.date || '';
+  
+  // Check header structure to determine correct mapping
+  if (headerColumns[1] === 'description') {
+    // Old structure: put description in first column, everything else shifts
+    rowData.description = entry.year || '';
+    rowData.description2 = entry.description || '';
+    rowData.description3 = entry.description2 || '';
+    rowData.description4 = entry.description3 || '';
+    rowData.description5 = entry.description4 || '';
+    rowData.description6 = entry.description5 || '';
+  } else {
+    // New structure: description is in year field
+    rowData.description = entry.description || '';
+    rowData.description2 = entry.description2 || '';
+    rowData.description3 = entry.description3 || '';
+    rowData.description4 = entry.description4 || '';
+    rowData.description5 = entry.description5 || '';
+    rowData.description6 = entry.description6 || '';
+  }
+  
+  // Link fields
+  rowData.link = entry.link || '';
+  rowData.link2 = entry.link2 || '';
+  rowData.link3 = entry.link3 || '';
+  rowData.link4 = entry.link4 || '';
+  rowData.link5 = entry.link5 || '';
+  rowData.link6 = entry.link6 || '';
+  
+  // Image path and quarter
+  rowData.image = entry.imagePath || '';
+  rowData.quarter = quarter;
+  
+  // Build the CSV row based on header structure
+  const rowArray = headerColumns.map(column => {
+    const value = rowData[column] || '';
+    return escapeCSV(value);
+  });
+  
   // Format the new entry as a CSV row
-  const newRow = [
-    escapeCSV(entry.date),
-    escapeCSV(entry.year),
-    escapeCSV(entry.description),
-    escapeCSV(entry.description2 || ''),
-    escapeCSV(entry.description3 || ''),
-    escapeCSV(entry.description4 || ''),
-    escapeCSV(entry.description5 || ''),
-    escapeCSV(entry.description6 || ''),
-    escapeCSV(entry.link || ''),
-    escapeCSV(entry.link2 || ''),
-    escapeCSV(entry.link3 || ''),
-    escapeCSV(entry.link4 || ''),
-    escapeCSV(entry.link5 || ''),
-    escapeCSV(entry.link6 || ''),
-    escapeCSV(entry.imagePath || ''),
-    escapeCSV(quarter)
-  ].join(',');
+  const newRow = rowArray.join(',');
   
   // Add the new row and join back together
   lines.push(newRow);
