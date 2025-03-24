@@ -1,7 +1,6 @@
 // Vercel Serverless Function for handling form submissions
 import { Octokit } from '@octokit/rest';
 import { getCurrentQuarter } from '../../utils/dataUtils.js';
-import { fileTypeFromBuffer } from 'file-type';
 
 // GitHub configuration - attempt to get from environment variables with fallbacks
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN || '';
@@ -18,16 +17,6 @@ function getOctokit() {
     return new Octokit(); // Anonymous mode with rate limits
   }
   return new Octokit({ auth: GITHUB_TOKEN });
-}
-
-// Authentication check - simplified to always pass in development
-function isAuthenticated(req) {
-  // Skip auth check for API in development
-  if (process.env.NODE_ENV === 'development') {
-    return true;
-  }
-  
-  return true; // Always authenticate in production since Vercel middleware handles auth
 }
 
 // Main handler function
@@ -62,9 +51,8 @@ export default async function handler(req, res) {
     if (imageData && filename) {
       // Extract base64 image data
       const base64ImageData = imageData.replace(/^data:image\/\w+;base64,/, '');
-      const imageBuffer = Buffer.from(base64ImageData, 'base64');
       
-      // Upload the image as-is (no WebP conversion to simplify)
+      // Upload the image as-is (keeping the original format)
       await uploadFile(
         octokit, 
         `${IMAGES_PATH}/${filename}`,

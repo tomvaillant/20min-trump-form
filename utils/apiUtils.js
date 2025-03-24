@@ -11,16 +11,6 @@ const getApiUrl = () => {
 };
 
 /**
- * Compress image before upload
- * Simplified version without external dependencies
- */
-export async function compressImage(imageFile) {
-  // In this simplified version, we're just passing through the file
-  // The server will handle any needed optimization
-  return imageFile;
-}
-
-/**
  * Process image upload and generate consistent filename
  */
 export function handleImageUpload(imageFile, date, title) {
@@ -32,8 +22,9 @@ export function handleImageUpload(imageFile, date, title) {
     // Add a short random suffix to prevent filename collisions
     const randomSuffix = Math.floor(Math.random() * 1000);
     
-    // Create the filename in the format: date_title_suffix.webp
-    const filename = `${cleanDate}_${cleanTitle}_${randomSuffix}.webp`;
+    // Create the filename with original extension
+    const fileExt = imageFile.name.split('.').pop().toLowerCase();
+    const filename = `${cleanDate}_${cleanTitle}_${randomSuffix}.${fileExt}`;
     
     // Return the filename and full GitHub raw URL path
     return {
@@ -61,9 +52,6 @@ export async function processSubmission(entry, imageFile, imageFilename) {
       imageData = await fileToBase64(imageFile);
     }
     
-    // Basic auth header for API calls
-    const authHeader = 'Basic ' + btoa('20-min:trumpets');
-    
     // Determine which endpoint to use based on whether we have an image
     const endpoint = imageFile ? 'submit-entry' : 'update-csv';
     
@@ -76,8 +64,7 @@ export async function processSubmission(entry, imageFile, imageFilename) {
     const response = await fetch(`${getApiUrl()}/${endpoint}/`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': authHeader
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify(requestBody)
     });

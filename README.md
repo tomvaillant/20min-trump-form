@@ -1,6 +1,6 @@
 # Trump Timeline Entry Form
 
-This Svelte application allows content editors to add new entries to the Trump Timeline, using Vercel serverless functions to update the GitHub repository without requiring user authentication.
+This Svelte application allows content editors to add new entries to the Trump Timeline, using Vercel serverless functions to update the GitHub repository.
 
 ## Getting Started
 
@@ -78,31 +78,12 @@ GITHUB_BRANCH=main
 
 Note: The `.env` file should be added to your `.gitignore` to prevent accidentally committing your token.
 
-## Authentication
-
-The application is protected with HTTP Basic Authentication:
-
-- Username: `20-min`
-- Password: `trumpets`
-
-This authentication is applied at multiple levels:
-1. HTTP Basic Auth for accessing the form
-2. API-level authentication for all data submission endpoints
-3. Client-side authentication for API requests
-
-The authentication is implemented using:
-- Vercel Edge Middleware for production deployment
-- Custom server middleware for local development
-- Authentication checks in API routes
-
 ## User Flow
 
-1. Users visit the form page and are prompted for authentication
-   - Username: `20-min`
-   - Password: `trumpets`
-2. After authentication, they fill out the form with date, description, and optionally an image
+1. Users visit the form page
+2. They fill out the form with date, description, and optionally an image
 3. Upon submission:
-   - The form calls the Vercel serverless function with authentication
+   - The form calls the Vercel serverless function
    - The function uses the stored GitHub token to update the repository
    - If provided, images are uploaded with consistent naming
    - The CSV file is updated with the new entry including automatic quarter detection
@@ -110,32 +91,13 @@ The authentication is implemented using:
 
 ## Image Handling
 
-### Image Format
-All images are automatically converted to WebP format to reduce file size. WebP typically reduces image size by 80-90% compared to PNG or JPEG formats.
-
 ### Image Naming Convention
 Images are automatically named using this pattern:
 ```
-date-year_description-excerpt_random.webp
+date-year_description-excerpt_random.[original-extension]
 ```
 
-Example: `july-1-2024_trump-wins-major-su_123.webp`
-
-### Image Conversion
-You can convert existing images to WebP format using:
-```
-npm run convert-to-webp
-```
-
-This will convert all PNG, JPG, JPEG, and GIF images in the images directory to WebP format. After conversion, you can update the CSV file to reference the WebP images:
-```
-npm run update-csv-webp
-```
-
-And clean up original image files:
-```
-npm run cleanup-images
-```
+Example: `july-1-2024_trump-wins-major-su_123.jpg`
 
 ## CSV Format
 
