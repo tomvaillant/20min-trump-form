@@ -345,8 +345,7 @@
 
   input[type="text"],
   input[type="url"],
-  textarea, 
-  select {
+  textarea {
     width: 100%;
     padding: 10px;
     border: 1px solid #ddd;

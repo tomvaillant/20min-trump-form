@@ -1,22 +1,18 @@
 /**
- * Auth middleware - No longer used
- * This file has been emptied as HTTP Basic Auth has been removed
+ * Auth middleware for API routes
+ * This handles authentication for API requests
  */
 
 /**
- * Middleware function to check authentication - always returns true
- * @returns {boolean} Always true
+ * Middleware function to check API route authentication
+ * This is now handled by middleware.js for UI routes
+ * @param {Request} request - The incoming request
+ * @returns {boolean} True if authenticated, false otherwise
  */
-export function isAuthenticated() {
+export function isAuthenticated(request) {
+  // API routes might have different authentication needs
+  // For now, API routes do not require authentication
   return true;
-}
-
-/**
- * Middleware to handle authentication response
- * @returns {Response} 200 OK response
- */
-export function getUnauthorizedResponse() {
-  return new Response('OK', { status: 200 });
 }
 
 /**
@@ -26,4 +22,17 @@ export function getUnauthorizedResponse() {
  */
 export function isApiRequest(url) {
   return url.includes('/api/');
+}
+
+/**
+ * Middleware to handle unauthorized response for API routes
+ * @returns {Response} Unauthorized response
+ */
+export function getUnauthorizedResponse() {
+  return new Response('Unauthorized', { 
+    status: 401,
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  });
 }
