@@ -185,24 +185,13 @@ function addEntryToCsv(csvContent, entry) {
   // Map the entry data to the correct columns
   rowData.date = entry.date || '';
   
-  // Check header structure to determine correct mapping
-  if (headerColumns[1] === 'description') {
-    // Old structure: put description in first column, everything else shifts
-    rowData.description = entry.year || '';
-    rowData.description2 = entry.description || '';
-    rowData.description3 = entry.description2 || '';
-    rowData.description4 = entry.description3 || '';
-    rowData.description5 = entry.description4 || '';
-    rowData.description6 = entry.description5 || '';
-  } else {
-    // New structure: description is in year field
-    rowData.description = entry.description || '';
-    rowData.description2 = entry.description2 || '';
-    rowData.description3 = entry.description3 || '';
-    rowData.description4 = entry.description4 || '';
-    rowData.description5 = entry.description5 || '';
-    rowData.description6 = entry.description6 || '';
-  }
+  // Current structure: map fields directly
+  rowData.description = entry.description || '';
+  rowData.description2 = entry.description2 || '';
+  rowData.description3 = entry.description3 || '';
+  rowData.description4 = entry.description4 || '';
+  rowData.description5 = entry.description5 || '';
+  rowData.description6 = entry.description6 || '';
   
   // Link fields
   rowData.link = entry.link || '';
