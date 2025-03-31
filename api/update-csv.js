@@ -191,8 +191,11 @@ function addEntryToCsv(csvContent, entry) {
 function escapeCSV(field) {
   if (!field) return '';
   
+  // Convert field to string if it's not already
+  const fieldStr = String(field);
+  
   // Remove any newlines to prevent breaking CSV structure
-  const sanitizedField = field.replace(/\n/g, ' ');
+  const sanitizedField = fieldStr.replace(/\n/g, ' ');
   
   // If field contains comma or double quote, enclose it in double quotes
   if (sanitizedField.includes(',') || sanitizedField.includes('"')) {
